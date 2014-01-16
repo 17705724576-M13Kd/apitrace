@@ -501,8 +501,8 @@ enum {
     /**
      * Whether this call terminates a frame.
      *
-     * XXX: This can't always be determined by the function name, so it should also
-     * go into the trace file eventually.
+     * XXX: This can't always be determined by the function name, so it should
+     *      also go into the trace file eventually.
      */
     CALL_FLAG_END_FRAME                 = (1 << 5),
 
@@ -522,6 +522,13 @@ enum {
     CALL_FLAG_MARKER                    = (1 << 8),
     CALL_FLAG_MARKER_PUSH               = (1 << 9),
     CALL_FLAG_MARKER_POP                = (1 << 10),
+
+    /**
+     * Mark for grouping of certain entity types (e.g. glBegin/End,
+     * glNewglNew/EndList, etc.) for qapitrace tree
+     */
+    CALL_FLAG_GROUP_START               = (1 << 11),
+    CALL_FLAG_GROUP_END                 = (1 << 12),
 };
 
 

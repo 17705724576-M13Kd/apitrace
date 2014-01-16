@@ -416,6 +416,20 @@ bool TraceLoader::callContains(trace::Call *call,
     return result;
 }
 
+bool
+TraceLoader::groupStart(trace::Call *call)
+{
+    return (call->flags & trace::CALL_FLAG_GROUP_START);
+}
+
+bool
+TraceLoader::groupEnd(trace::Call *call)
+{
+    return (call->flags & trace::CALL_FLAG_GROUP_END);
+}
+
+//LLL Todo: Need to similarly modify TraceLoader::parseTrace()
+//LLL
 QVector<ApiTraceCall*>
 TraceLoader::fetchFrameContents(ApiTraceFrame *currentFrame)
 {
@@ -449,16 +463,29 @@ TraceLoader::fetchFrameContents(ApiTraceFrame *currentFrame)
                 allCalls[parsedCalls++] = apiCall;
                 if (groups.count() == 0) {
                     topLevelItems.append(apiCall);
-                }
-                if (!groups.isEmpty()) {
+//LLL start for CALL_FLAG_RENDER
+//LLL                groups.push(apiCall);
+                } else {
                     groups.top()->addChild(apiCall);
                 }
-                if (call->flags & trace::CALL_FLAG_MARKER_PUSH) {
+//LLL           if (call->flags & trace::CALL_FLAG_MARKER_PUSH) {
+                if (groupStart(call)) {
                     groups.push(apiCall);
-                } else if (call->flags & trace::CALL_FLAG_MARKER_POP) {
+//LLL           } else if (call->flags & trace::CALL_FLAG_MARKER_POP) {
+                } else if (groupEnd(call)) {
                     groups.top()->finishedAddingChildren();
                     groups.pop();
                 }
+//LLL Skip end of Render ops for now
+//LLL           else if (call->flags & trace::CALL_FLAG_RENDER) {
+//LLL               if (groups.count()) {
+//LLL                   while (groups.count()) {
+//LLL                       groups.top()->finishedAddingChildren();
+//LLL                       groups.pop();
+//LLL                      
+//LLL                   }
+//LLL               }
+//LLL           }
                 if (apiCall->hasBinaryData()) {
                     QByteArray data =
                         apiCall->arguments()[
