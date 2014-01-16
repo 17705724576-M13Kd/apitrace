@@ -464,28 +464,26 @@ TraceLoader::fetchFrameContents(ApiTraceFrame *currentFrame)
                 if (groups.count() == 0) {
                     topLevelItems.append(apiCall);
 //LLL start for CALL_FLAG_RENDER
-//LLL                groups.push(apiCall);
+                     groups.push(apiCall);
+//LLL
                 } else {
                     groups.top()->addChild(apiCall);
                 }
-//LLL           if (call->flags & trace::CALL_FLAG_MARKER_PUSH) {
-                if (groupStart(call)) {
-                    groups.push(apiCall);
-//LLL           } else if (call->flags & trace::CALL_FLAG_MARKER_POP) {
-                } else if (groupEnd(call)) {
-                    groups.top()->finishedAddingChildren();
-                    groups.pop();
-                }
-//LLL Skip end of Render ops for now
-//LLL           else if (call->flags & trace::CALL_FLAG_RENDER) {
-//LLL               if (groups.count()) {
-//LLL                   while (groups.count()) {
-//LLL                       groups.top()->finishedAddingChildren();
-//LLL                       groups.pop();
-//LLL                      
-//LLL                   }
-//LLL               }
+//LLL           if (groupStart(call)) {
+//LLL               groups.push(apiCall);
+//LLL           } else if (groupEnd(call)) {
+//LLL               groups.top()->finishedAddingChildren();
+//LLL               groups.pop();
 //LLL           }
+                if (call->flags & trace::CALL_FLAG_RENDER) {
+                    if (groups.count()) {
+                        while (groups.count()) {
+                            groups.top()->finishedAddingChildren();
+                            groups.pop();
+                           
+                        }
+                    }
+                }
                 if (apiCall->hasBinaryData()) {
                     QByteArray data =
                         apiCall->arguments()[
