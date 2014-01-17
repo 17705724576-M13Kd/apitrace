@@ -416,6 +416,10 @@ bool TraceLoader::callContains(trace::Call *call,
     return result;
 }
 
+static bool
+groupsops = false,
+renderops = false;
+
 bool
 TraceLoader::groupStart(trace::Call *call)
 {
@@ -437,6 +441,18 @@ TraceLoader::fetchFrameContents(ApiTraceFrame *currentFrame)
 
     if (currentFrame->isLoaded()) {
         return currentFrame->calls();
+    }
+
+    static bool firsttime = true;
+
+    if (firsttime) {
+        char *szGroupGroups = getenv ("QAPITRACE_GROUP_GROUPS");
+        char *szGroupRender = getenv ("QAPITRACE_GROUP_RENDER");
+        if (szGroupGroups) {
+            groupsops=true;
+        } else if (szGroupRender) {
+           renderops=true;
+        }
     }
 
     if (m_parser.supportsOffsets()) {
@@ -461,28 +477,33 @@ TraceLoader::fetchFrameContents(ApiTraceFrame *currentFrame)
                 Q_ASSERT(apiCall);
                 Q_ASSERT(parsedCalls < allCalls.size());
                 allCalls[parsedCalls++] = apiCall;
-                if (groups.count() == 0) {
-                    topLevelItems.append(apiCall);
-//LLL start for CALL_FLAG_RENDER
-                     groups.push(apiCall);
-//LLL
-                } else {
-                    groups.top()->addChild(apiCall);
-                }
-//LLL           if (groupStart(call)) {
-//LLL               groups.push(apiCall);
-//LLL           } else if (groupEnd(call)) {
-//LLL               groups.top()->finishedAddingChildren();
-//LLL               groups.pop();
-//LLL           }
-                if (call->flags & trace::CALL_FLAG_RENDER) {
-                    if (groups.count()) {
-                        while (groups.count()) {
+                if (groupsops || renderops) {
+                    if (groups.count() == 0) {
+                        topLevelItems.append(apiCall);
+                        if (renderops) {
+                            groups.push(apiCall);
+                        }
+                    } else {
+                        groups.top()->addChild(apiCall);
+                    }
+                    if (groupsops) {
+                        if (groupStart(call)) {
+                            groups.push(apiCall);
+                        } else if (groupEnd(call)) {
                             groups.top()->finishedAddingChildren();
                             groups.pop();
-                           
                         }
                     }
+                    else if (renderops) {
+                        if (call->flags & trace::CALL_FLAG_RENDER) {
+                            if (groups.count()) {
+                                groups.top()->finishedAddingChildren();
+                                groups.pop();
+                            }
+                        }
+                    }
+                } else {
+                    topLevelItems.append(apiCall);
                 }
                 if (apiCall->hasBinaryData()) {
                     QByteArray data =
