@@ -75,6 +75,8 @@ private:
     void searchPrev(const ApiTrace::SearchRequest &request);
 
     int callInFrame(int callIdx) const;
+    bool groupStart(trace::Call *call);
+    bool groupEnd(trace::Call *call);
     bool callContains(trace::Call *call,
                       const QString &str,
                       Qt::CaseSensitivity sensitivity);

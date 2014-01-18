@@ -416,6 +416,24 @@ bool TraceLoader::callContains(trace::Call *call,
     return result;
 }
 
+static bool
+groupsops = false,
+renderops = false;
+
+bool
+TraceLoader::groupStart(trace::Call *call)
+{
+    return (call->flags & trace::CALL_FLAG_GROUP_START);
+}
+
+bool
+TraceLoader::groupEnd(trace::Call *call)
+{
+    return (call->flags & trace::CALL_FLAG_GROUP_END);
+}
+
+//LLL Todo: Need to similarly modify TraceLoader::parseTrace()
+//LLL
 QVector<ApiTraceCall*>
 TraceLoader::fetchFrameContents(ApiTraceFrame *currentFrame)
 {
@@ -423,6 +441,18 @@ TraceLoader::fetchFrameContents(ApiTraceFrame *currentFrame)
 
     if (currentFrame->isLoaded()) {
         return currentFrame->calls();
+    }
+
+    static bool firsttime = true;
+
+    if (firsttime) {
+        char *szGroupGroups = getenv ("QAPITRACE_GROUP_GROUPS");
+        char *szGroupRender = getenv ("QAPITRACE_GROUP_RENDER");
+        if (szGroupGroups) {
+            groupsops=true;
+        } else if (szGroupRender) {
+           renderops=true;
+        }
     }
 
     if (m_parser.supportsOffsets()) {
@@ -447,17 +477,33 @@ TraceLoader::fetchFrameContents(ApiTraceFrame *currentFrame)
                 Q_ASSERT(apiCall);
                 Q_ASSERT(parsedCalls < allCalls.size());
                 allCalls[parsedCalls++] = apiCall;
-                if (groups.count() == 0) {
+                if (groupsops || renderops) {
+                    if (groups.count() == 0) {
+                        topLevelItems.append(apiCall);
+                        if (renderops) {
+                            groups.push(apiCall);
+                        }
+                    } else {
+                        groups.top()->addChild(apiCall);
+                    }
+                    if (groupsops) {
+                        if (groupStart(call)) {
+                            groups.push(apiCall);
+                        } else if (groupEnd(call)) {
+                            groups.top()->finishedAddingChildren();
+                            groups.pop();
+                        }
+                    }
+                    else if (renderops) {
+                        if (call->flags & trace::CALL_FLAG_RENDER) {
+                            if (groups.count()) {
+                                groups.top()->finishedAddingChildren();
+                                groups.pop();
+                            }
+                        }
+                    }
+                } else {
                     topLevelItems.append(apiCall);
-                }
-                if (!groups.isEmpty()) {
-                    groups.top()->addChild(apiCall);
-                }
-                if (call->flags & trace::CALL_FLAG_MARKER_PUSH) {
-                    groups.push(apiCall);
-                } else if (call->flags & trace::CALL_FLAG_MARKER_POP) {
-                    groups.top()->finishedAddingChildren();
-                    groups.pop();
                 }
                 if (apiCall->hasBinaryData()) {
                     QByteArray data =
