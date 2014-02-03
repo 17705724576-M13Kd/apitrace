@@ -29,6 +29,20 @@ apiCallFromTraceCall(const trace::Call *call,
 TraceLoader::TraceLoader(QObject *parent)
     : QObject(parent)
 {
+//  if ( getenv ("QAPITRACE_GROUP_GROUPS")) {
+#ifdef LLL
+        QStringList groupsList;
+        groupsList //<< "glBegin"              << "glEnd"
+                   //<< "NewList"              << "glEndList"
+                   //<< "glPushMatrix"         << "glPopMatrix"
+                     << "glPushDebugGroup"     << "glPopDebugGroup"
+                     << "glPushGroupMarkerExt" << "glPopGroupMarkerExt"
+                     ;
+        m_groups.setGroupsList(groupsList);
+#endif //LLL
+//  } else if (getenv ("QAPITRACE_GROUP_RENDER")) {
+//      m_groups.renderops=true;
+//  }
 }
 
 TraceLoader::~TraceLoader()
@@ -416,20 +430,22 @@ bool TraceLoader::callContains(trace::Call *call,
     return result;
 }
 
-static bool
-groupsops = false,
-renderops = false;
-
 bool
 TraceLoader::groupStart(trace::Call *call)
 {
-    return (call->flags & trace::CALL_FLAG_GROUP_START);
+    if (call->flags & trace::CALL_FLAG_GROUP_START)
+        return (m_groups.contains(call->name()));
+
+    return false;
 }
 
 bool
 TraceLoader::groupEnd(trace::Call *call)
 {
-    return (call->flags & trace::CALL_FLAG_GROUP_END);
+    if (call->flags & trace::CALL_FLAG_GROUP_END)
+        return (m_groups.contains(call->name()));
+
+    return false;
 }
 
 //LLL Todo: Need to similarly modify TraceLoader::parseTrace()
@@ -443,17 +459,6 @@ TraceLoader::fetchFrameContents(ApiTraceFrame *currentFrame)
         return currentFrame->calls();
     }
 
-    static bool firsttime = true;
-
-    if (firsttime) {
-        char *szGroupGroups = getenv ("QAPITRACE_GROUP_GROUPS");
-        char *szGroupRender = getenv ("QAPITRACE_GROUP_RENDER");
-        if (szGroupGroups) {
-            groupsops=true;
-        } else if (szGroupRender) {
-           renderops=true;
-        }
-    }
 
     if (m_parser.supportsOffsets()) {
         unsigned frameIdx = currentFrame->number;
@@ -477,16 +482,16 @@ TraceLoader::fetchFrameContents(ApiTraceFrame *currentFrame)
                 Q_ASSERT(apiCall);
                 Q_ASSERT(parsedCalls < allCalls.size());
                 allCalls[parsedCalls++] = apiCall;
-                if (groupsops || renderops) {
+                if (m_groups.groupsops() || m_groups.renderops()) {
                     if (groups.count() == 0) {
                         topLevelItems.append(apiCall);
-                        if (renderops) {
+                        if (m_groups.renderops()) {
                             groups.push(apiCall);
                         }
                     } else {
                         groups.top()->addChild(apiCall);
                     }
-                    if (groupsops) {
+                    if (m_groups.groupsops()) {
                         if (groupStart(call)) {
                             groups.push(apiCall);
                         } else if (groupEnd(call)) {
@@ -494,7 +499,7 @@ TraceLoader::fetchFrameContents(ApiTraceFrame *currentFrame)
                             groups.pop();
                         }
                     }
-                    else if (renderops) {
+                    else if (m_groups.renderops()) {
                         if (call->flags & trace::CALL_FLAG_RENDER) {
                             if (groups.count()) {
                                 groups.top()->finishedAddingChildren();

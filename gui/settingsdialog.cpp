@@ -32,6 +32,10 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     showFilterCB->setCurrentIndex(0);
     showFilterEdit->setText(m_showFilters.constBegin().value().pattern());
 
+    // Connect framed groups to combobox selection
+    connect(comboBox, SIGNAL(currentIndexChanged(int)),
+            SLOT(toggleFrame(int)));
+
     // Connect Apply button from ButtonBox
     QPushButton* applyButton = buttonBox->button(QDialogButtonBox::Apply);
     Q_ASSERT (applyButton != NULL);
@@ -74,6 +78,18 @@ void SettingsDialog::filtersFromModel(const ApiTraceFilter *model)
         showFilterCB->setCurrentIndex(m_showFilters.count());
         showFilterEdit->setText(regexp.pattern());
     }
+//LLL add
+    Groups groups = model->filterGroups();
+ 
+    QList<QCheckBox *> groupCheckBoxes = frame->findChildren<QCheckBox *>();
+    QList<QCheckBox *>::const_iterator iter = groupCheckBoxes.begin();
+
+    while (iter != groupCheckBoxes.end()) {
+        (*iter)->setChecked (groups.contains(((*iter)->text())));
+        iter++;
+    }
+    comboBox->setCurrentIndex(groups.index());
+//LLL end
 }
 
 void SettingsDialog::filtersToModel(ApiTraceFilter *model)
@@ -95,12 +111,31 @@ void SettingsDialog::filtersToModel(ApiTraceFilter *model)
         opts |= ApiTraceFilter::CustomFilter;
         m_filter->setCustomFilterRegexp(customEdit->text());
     }
+//LLL add
+    Groups groups(groupsList(), comboBox->currentIndex());
+    m_filter->setFilterGroups(groups);
+//LLL end
     m_filter->setFilterOptions(opts);
     if (showFilterBox->isChecked()) {
         m_filter->setFilterRegexp(QRegExp(showFilterEdit->text()));
     } else {
         m_filter->setFilterRegexp(QRegExp());
     }
+} // ::filtersToModel
+
+QStringList SettingsDialog::groupsList()
+{
+    QList<QCheckBox *> groupCheckBoxes = frame->findChildren<QCheckBox *>();
+
+    QStringList groupList;
+    QList<QCheckBox *>::const_iterator iter = groupCheckBoxes.begin();
+
+    while (iter != groupCheckBoxes.end()) {
+        if ((*iter)->isChecked())
+            groupList << (*iter)->text();
+        iter++;
+    }
+    return groupList;
 }
 
 void SettingsDialog::accept()
@@ -139,6 +174,11 @@ void SettingsDialog::settingsUpdate()
 void SettingsDialog::apply()
 {
     settingsUpdate();
+}
+
+void SettingsDialog::toggleFrame(int indx)
+{
+    frame->setVisible(!indx);
 }
 
 void SettingsDialog::changeRegexp(const QString &name)

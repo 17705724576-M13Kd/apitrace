@@ -1,5 +1,6 @@
 #include "apitracefilter.h"
 
+#include "apitrace.h"
 #include "apitracecall.h"
 #include "apitracemodel.h"
 
@@ -10,6 +11,10 @@ ApiTraceFilter::ApiTraceFilter(QObject *parent)
       m_filters(ExtensionsFilter | ResolutionsFilter |
                 ErrorsQueryFilter | ExtraStateFilter)
 {
+    QStringList groupsList;
+    groupsList << "glPushDebugGroup/glPopDebugGroup" 
+               << "glPushGroupMarkerExt/glPopGroupMarkerExt";
+    m_groups.setGroupsList(groupsList);
 }
 
 bool ApiTraceFilter::filterAcceptsRow(int sourceRow,
@@ -98,6 +103,35 @@ QModelIndex ApiTraceFilter::indexForCall(ApiTraceCall *call) const
     ApiTraceModel *model = static_cast<ApiTraceModel *>(sourceModel());
     QModelIndex index = model->indexForCall(call);
     return mapFromSource(index);
+}
+
+#ifdef LLL
+void ApiTraceFilter::setFilterGroups(ApiTraceModel *model)
+{
+    model->setFilterGroups(m_groups);
+}
+#endif //LLL
+
+//LLL
+void ApiTraceFilter::setApiTrace(ApiTrace *trace)
+{
+    trace->adjustFilter(this);
+}
+
+void ApiTraceFilter::setFilterGroups(Groups& groups)
+{
+    if (m_groups != groups) {
+        m_groups = groups;
+        qDebug()<<"\nApiTraceFilter::setApiTrace(): emit filterchanged()";
+        emit filterChanged(this);
+        emit refreshFrames();
+    }
+}
+//LLL
+
+Groups ApiTraceFilter::filterGroups() const
+{
+   return m_groups;
 }
 
 QRegExp ApiTraceFilter::filterRegexp() const

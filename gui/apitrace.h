@@ -2,6 +2,7 @@
 #define APITRACE_H
 
 #include "apitracecall.h"
+#include "apitracefilter.h"
 
 #include "trace_api.hpp"
 
@@ -95,6 +96,10 @@ public slots:
     void setCallError(const ApiTraceError &error);
 
     void bindThumbnailsToFrames(const QList<QImage> &thumbnails);
+//LLL
+    void adjustFilter(ApiTraceFilter*);
+    void resetFrames();
+//LLL
 
 signals:
     void loadTrace(const QString &name);

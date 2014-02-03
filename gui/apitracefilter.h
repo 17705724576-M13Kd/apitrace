@@ -3,7 +3,12 @@
 
 #include <QRegExp>
 #include <QSortFilterProxyModel>
+#include <QStringList>
 
+//LLL
+#include "groupsfilter.h"
+
+class ApiTrace;
 class ApiTraceCall;
 
 class ApiTraceFilter : public QSortFilterProxyModel
@@ -32,6 +37,15 @@ public:
     QString customFilterRegexp() const;
 
     QModelIndex indexForCall(ApiTraceCall *call) const;
+
+//LLL
+    void setApiTrace(ApiTrace*);
+    void setFilterGroups(Groups&);
+    Groups filterGroups() const;
+signals:
+    void filterChanged(ApiTraceFilter*);
+    void refreshFrames();
+   
 protected:
     bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const;
 
@@ -39,6 +53,9 @@ private:
     QRegExp m_regexp;
     FilterOptions m_filters;
     QRegExp m_customRegexp;
+
+    //LLL add grouplist stuff here etc.
+    Groups m_groups;
 };
 
 #endif

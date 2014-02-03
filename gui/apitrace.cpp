@@ -119,15 +119,20 @@ void ApiTrace::setFileName(const QString &name)
         m_fileName = name;
         m_tempFileName = QString();
 
-        m_frames.clear();
         m_errors.clear();
         m_editedCalls.clear();
         m_queuedErrors.clear();
         m_needsSaving = false;
+        resetFrames();
+    }
+}
+
+void ApiTrace::resetFrames()
+{
+        m_frames.clear();
         emit invalidated();
 
         emit loadTrace(m_fileName);
-    }
 }
 
 void ApiTrace::addFrames(const QList<ApiTraceFrame*> &frames)
@@ -231,6 +236,13 @@ bool ApiTrace::isSaving() const
 bool ApiTrace::hasErrors() const
 {
     return !m_errors.isEmpty() || !m_queuedErrors.isEmpty();
+}
+
+//LLL
+void ApiTrace::adjustFilter(ApiTraceFilter* filter)
+{
+    qDebug() << "\n\nApiTrace::adjustFilter";
+    m_loader->setFilterGroups(filter->filterGroups());
 }
 
 void ApiTrace::loadFrame(ApiTraceFrame *frame)

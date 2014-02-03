@@ -21,10 +21,12 @@ private slots:
     void changeRegexp(const QString &name);
     void regexpChanged(const QString &pattern);
     void apply();
+    void toggleFrame(int indx);
 
 private:
     void filtersFromModel(const ApiTraceFilter *model);
     void filtersToModel(ApiTraceFilter *model);
+    QStringList groupsList();
 private:
     QMap<QString, QRegExp> m_showFilters;
     ApiTraceFilter *m_filter;

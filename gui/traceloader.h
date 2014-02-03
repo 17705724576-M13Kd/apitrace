@@ -3,12 +3,14 @@
 
 
 #include "apitrace.h"
+#include "groupsfilter.h"
 #include "trace_file.hpp"
 #include "trace_parser.hpp"
 
 #include <QObject>
 #include <QList>
 #include <QMap>
+#include <QDebug>
 
 class TraceLoader : public QObject
 {
@@ -23,6 +25,13 @@ public:
 
     ApiTraceEnumSignature *enumSignature(unsigned id);
     void addEnumSignature(unsigned id, ApiTraceEnumSignature *signature);
+//LLL
+    void setFilterGroups(const Groups& g)
+    {
+        qDebug()<< "TraceLoader::setFilterGroups";
+        m_groups = g;
+    }
+
 
 public slots:
     void loadTrace(const QString &filename);
@@ -80,17 +89,18 @@ private:
     bool callContains(trace::Call *call,
                       const QString &str,
                       Qt::CaseSensitivity sensitivity);
-     QVector<ApiTraceCall*> fetchFrameContents(ApiTraceFrame *frame);
-     bool searchCallsBackwards(const QList<trace::Call*> &calls,
-                               int frameIdx,
-                               const ApiTrace::SearchRequest &request);
-
+    QVector<ApiTraceCall*> fetchFrameContents(ApiTraceFrame *frame);
+    bool searchCallsBackwards(const QList<trace::Call*> &calls,
+                              int frameIdx,
+                              const ApiTrace::SearchRequest &request);
 private:
     trace::Parser m_parser;
 
     typedef QMap<int, FrameBookmark> FrameBookmarks;
     FrameBookmarks m_frameBookmarks;
     QList<ApiTraceFrame*> m_createdFrames;
+
+    Groups m_groups;
 
     QHash<QString, QUrl> m_helpHash;
 
