@@ -14,13 +14,11 @@ class SettingsDialog : public QDialog, public Ui_Settings
 public:
     SettingsDialog(QWidget *parent = 0);
     void accept();
-    void settingsUpdate();
 
     void setFilterModel(ApiTraceFilter *filter);
 private slots:
     void changeRegexp(const QString &name);
     void regexpChanged(const QString &pattern);
-    void apply();
     void toggleFrame(int indx);
 
 private:

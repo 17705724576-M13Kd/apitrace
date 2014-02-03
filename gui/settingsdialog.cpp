@@ -1,8 +1,6 @@
 #include "settingsdialog.h"
 
 #include <QMessageBox>
-#include <QPushButton>
-#include <QDebug>
 
 SettingsDialog::SettingsDialog(QWidget *parent)
     : QDialog(parent),
@@ -35,11 +33,6 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     // Connect framed groups to combobox selection
     connect(comboBox, SIGNAL(currentIndexChanged(int)),
             SLOT(toggleFrame(int)));
-
-    // Connect Apply button from ButtonBox
-    QPushButton* applyButton = buttonBox->button(QDialogButtonBox::Apply);
-    Q_ASSERT (applyButton != NULL);
-    connect(applyButton, SIGNAL(clicked()), this, SLOT(apply()));
 }
 
 void SettingsDialog::filtersFromModel(const ApiTraceFilter *model)
@@ -140,12 +133,6 @@ QStringList SettingsDialog::groupsList()
 
 void SettingsDialog::accept()
 {
-    settingsUpdate();
-    QDialog::accept();
-}
-
-void SettingsDialog::settingsUpdate()
-{
     if (showFilterBox->isChecked()) {
         QRegExp regexp(showFilterEdit->text());
         if (!regexp.isValid()) {
@@ -169,11 +156,7 @@ void SettingsDialog::settingsUpdate()
         }
     }
     filtersToModel(m_filter);
-}
-
-void SettingsDialog::apply()
-{
-    settingsUpdate();
+    QDialog::accept();
 }
 
 void SettingsDialog::toggleFrame(int indx)
