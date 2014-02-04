@@ -6,7 +6,7 @@
 
 #include <QDebug>
 
-ApiTraceFilter::ApiTraceFilter(QObject *parent)
+ApiTraceFilter::ApiTraceFilter(ApiTrace *model, QObject *parent)
     : QSortFilterProxyModel(),
       m_filters(ExtensionsFilter | ResolutionsFilter |
                 ErrorsQueryFilter | ExtraStateFilter)
@@ -14,7 +14,9 @@ ApiTraceFilter::ApiTraceFilter(QObject *parent)
     QStringList groupsList;
     groupsList << "glPushDebugGroup/glPopDebugGroup" 
                << "glPushGroupMarkerExt/glPopGroupMarkerExt";
-    m_groups.setGroupsList(groupsList);
+    m_groupsFilter.setGroupsList(groupsList);
+
+    model->adjustFilter(this);
 }
 
 bool ApiTraceFilter::filterAcceptsRow(int sourceRow,
@@ -105,33 +107,21 @@ QModelIndex ApiTraceFilter::indexForCall(ApiTraceCall *call) const
     return mapFromSource(index);
 }
 
-#ifdef LLL
-void ApiTraceFilter::setFilterGroups(ApiTraceModel *model)
-{
-    model->setFilterGroups(m_groups);
-}
-#endif //LLL
-
 //LLL
-void ApiTraceFilter::setApiTrace(ApiTrace *trace)
+void ApiTraceFilter::setGroupsFilter(QStringList strlist, int index)
 {
-    trace->adjustFilter(this);
-}
+    GroupsFilter groupsfilter(strlist, index);
+    if (m_groupsFilter != groupsfilter) {
+        m_groupsFilter = groupsfilter;
 
-void ApiTraceFilter::setFilterGroups(Groups& groups)
-{
-    if (m_groups != groups) {
-        m_groups = groups;
-        qDebug()<<"\nApiTraceFilter::setApiTrace(): emit filterchanged()";
         emit filterChanged(this);
         emit refreshFrames();
     }
 }
-//LLL
 
-Groups ApiTraceFilter::filterGroups() const
+bool ApiTraceFilter::usingGroup(QString str) const
 {
-   return m_groups;
+   return m_groupsFilter.contains(str);
 }
 
 QRegExp ApiTraceFilter::filterRegexp() const

@@ -756,10 +756,9 @@ void MainWindow::initObjects()
 
     m_model = new ApiTraceModel();
     m_model->setApiTrace(m_trace);
-    m_proxyModel = new ApiTraceFilter();
-//LLL >>>
-    m_proxyModel->setApiTrace(m_trace);
-//LLL <<<
+//--- LLL >>>
+    m_proxyModel = new ApiTraceFilter(m_trace);
+//<<< LLL ---
     m_proxyModel->setSourceModel(m_model);
     m_ui.callView->setModel(m_proxyModel);
     m_ui.callView->setItemDelegate(
@@ -829,16 +828,12 @@ void MainWindow::initConnections()
     connect(m_trace, SIGNAL(foundCallIndex(ApiTraceCall*)),
             this, SLOT(slotJumpToResult(ApiTraceCall*)));
 
-//LLL
-    qDebug() << "MainWindow::initConnections\n"
-             << "\tconnecting  ApiTraceFilter signal filterChanged()\n"
-             << "\tto          ApiTrace       slot   adjustFilter()";
-    qDebug() << "connect(m_proxyModel, SIGNAL(filterChanged()), m_trace, SLOT(adjustFilter()))\n";
+//--- LLL >>>
     connect(m_proxyModel , SIGNAL(filterChanged(ApiTraceFilter*)),
             m_trace, SLOT(adjustFilter(ApiTraceFilter*)));
     connect(m_proxyModel , SIGNAL(refreshFrames()),
             m_trace, SLOT(resetFrames()));
-//LLL
+//<<< LLL ---
 
     connect(m_retracer, SIGNAL(finished(const QString&)),
             this, SLOT(replayFinished(const QString&)));

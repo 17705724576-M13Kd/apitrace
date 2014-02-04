@@ -96,10 +96,10 @@ public slots:
     void setCallError(const ApiTraceError &error);
 
     void bindThumbnailsToFrames(const QList<QImage> &thumbnails);
-//LLL
+//--- LLL >>>
     void adjustFilter(ApiTraceFilter*);
     void resetFrames();
-//LLL
+//<<< LLL ---
 
 signals:
     void loadTrace(const QString &name);

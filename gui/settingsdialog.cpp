@@ -71,18 +71,18 @@ void SettingsDialog::filtersFromModel(const ApiTraceFilter *model)
         showFilterCB->setCurrentIndex(m_showFilters.count());
         showFilterEdit->setText(regexp.pattern());
     }
-//LLL add
-    Groups groups = model->filterGroups();
- 
+//--- LLL >>>
     QList<QCheckBox *> groupCheckBoxes = frame->findChildren<QCheckBox *>();
     QList<QCheckBox *>::const_iterator iter = groupCheckBoxes.begin();
 
     while (iter != groupCheckBoxes.end()) {
-        (*iter)->setChecked (groups.contains(((*iter)->text())));
+        //QString str = (*iter)->text();
+        //(*iter)->setChecked (model->usingGroup(str));
+        (*iter)->setChecked (model->usingGroup(((*iter)->text())));
         iter++;
     }
-    comboBox->setCurrentIndex(groups.index());
-//LLL end
+    comboBox->setCurrentIndex(model->groupsTypeIndex());
+//<<< LLL ---
 }
 
 void SettingsDialog::filtersToModel(ApiTraceFilter *model)
@@ -104,10 +104,9 @@ void SettingsDialog::filtersToModel(ApiTraceFilter *model)
         opts |= ApiTraceFilter::CustomFilter;
         m_filter->setCustomFilterRegexp(customEdit->text());
     }
-//LLL add
-    Groups groups(groupsList(), comboBox->currentIndex());
-    m_filter->setFilterGroups(groups);
-//LLL end
+//--- LLL >>>
+    m_filter->setGroupsFilter(groupsList(), comboBox->currentIndex());
+//<<< LLL ---
     m_filter->setFilterOptions(opts);
     if (showFilterBox->isChecked()) {
         m_filter->setFilterRegexp(QRegExp(showFilterEdit->text()));

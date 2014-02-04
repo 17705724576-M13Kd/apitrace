@@ -28,22 +28,7 @@ apiCallFromTraceCall(const trace::Call *call,
 
 TraceLoader::TraceLoader(QObject *parent)
     : QObject(parent)
-{
-//  if ( getenv ("QAPITRACE_GROUP_GROUPS")) {
-#ifdef LLL
-        QStringList groupsList;
-        groupsList //<< "glBegin"              << "glEnd"
-                   //<< "NewList"              << "glEndList"
-                   //<< "glPushMatrix"         << "glPopMatrix"
-                     << "glPushDebugGroup"     << "glPopDebugGroup"
-                     << "glPushGroupMarkerExt" << "glPopGroupMarkerExt"
-                     ;
-        m_groups.setGroupsList(groupsList);
-#endif //LLL
-//  } else if (getenv ("QAPITRACE_GROUP_RENDER")) {
-//      m_groups.renderops=true;
-//  }
-}
+{}
 
 TraceLoader::~TraceLoader()
 {
@@ -434,7 +419,7 @@ bool
 TraceLoader::groupStart(trace::Call *call)
 {
     if (call->flags & trace::CALL_FLAG_GROUP_START)
-        return (m_groups.contains(call->name()));
+        return (m_filter->usingGroup(call->name()));
 
     return false;
 }
@@ -443,7 +428,7 @@ bool
 TraceLoader::groupEnd(trace::Call *call)
 {
     if (call->flags & trace::CALL_FLAG_GROUP_END)
-        return (m_groups.contains(call->name()));
+        return (m_filter->usingGroup(call->name()));
 
     return false;
 }
@@ -482,16 +467,16 @@ TraceLoader::fetchFrameContents(ApiTraceFrame *currentFrame)
                 Q_ASSERT(apiCall);
                 Q_ASSERT(parsedCalls < allCalls.size());
                 allCalls[parsedCalls++] = apiCall;
-                if (m_groups.groupsops() || m_groups.renderops()) {
+                if (m_filter->showGroupsOps() || m_filter->showRenderOps()) {
                     if (groups.count() == 0) {
                         topLevelItems.append(apiCall);
-                        if (m_groups.renderops()) {
+                        if (m_filter->showRenderOps()) {
                             groups.push(apiCall);
                         }
                     } else {
                         groups.top()->addChild(apiCall);
                     }
-                    if (m_groups.groupsops()) {
+                    if (m_filter->showGroupsOps()) {
                         if (groupStart(call)) {
                             groups.push(apiCall);
                         } else if (groupEnd(call)) {
@@ -499,7 +484,7 @@ TraceLoader::fetchFrameContents(ApiTraceFrame *currentFrame)
                             groups.pop();
                         }
                     }
-                    else if (m_groups.renderops()) {
+                    else if (m_filter->showRenderOps()) {
                         if (call->flags & trace::CALL_FLAG_RENDER) {
                             if (groups.count()) {
                                 groups.top()->finishedAddingChildren();

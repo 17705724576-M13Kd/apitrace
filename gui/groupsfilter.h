@@ -1,28 +1,28 @@
-#ifndef GROUPS_H
-#define GROUPS_H
+#ifndef GROUPSFILTER_H
+#define GROUPSFILTER_H
 
 #include <QStringList>
 
-struct Groups {
+struct GroupsFilter {
     enum {GROUPS, RENDER};
 
-    Groups()  : m_index(GROUPS), m_groupsops(false), m_renderops(false)
+    GroupsFilter()  : m_index(GROUPS), m_groupsops(false), m_renderops(false)
     {
     }
 
-    Groups(QStringList strList, size_t index=GROUPS)
+    GroupsFilter(QStringList strList, size_t index=GROUPS)
         : m_index(index), m_groupsops(false),
           m_renderops(false), m_groupsList(strList)
     {
         sanitize();
     }
 
-    Groups(Groups const& groups)
+    GroupsFilter(GroupsFilter const& groups)
     {
         *this = groups;                              // use Groups operator=
     }
 
-    Groups & operator= (const Groups& other)
+    GroupsFilter & operator= (const GroupsFilter& other)
     {
         m_index      = other.m_index;
         m_groupsops  = other.m_groupsops;
@@ -31,7 +31,7 @@ struct Groups {
         return *this;
     }
 
-    bool operator== (const Groups& other) const
+    bool operator== (const GroupsFilter& other) const
     {
         return (m_index      == other.m_index 
             &&  m_groupsops  == other.m_groupsops 
@@ -39,7 +39,7 @@ struct Groups {
             &&  m_groupsList == other.m_groupsList); // QStringList operator==
     }
 
-    bool operator!= (const Groups& other) const
+    bool operator!= (const GroupsFilter& other) const
     {
         return (!(*this == other));                  // use Groups operator==
     }
@@ -92,6 +92,7 @@ private:
     void sanitize()
     {
         m_groupsops = (m_groupsList.count() && (m_index == GROUPS));
+        m_renderops = m_groupsops ? false : m_index;
 
         // Split any strings containing '/' for a single-call list
         QStringList tmplist;
@@ -110,4 +111,4 @@ private:
     QStringList m_groupsList;
 };
 
-#endif // GROUPS_H
+#endif // GROUPSFILTER_H

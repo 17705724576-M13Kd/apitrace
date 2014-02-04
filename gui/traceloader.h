@@ -3,7 +3,7 @@
 
 
 #include "apitrace.h"
-#include "groupsfilter.h"
+#include "apitracefilter.h"
 #include "trace_file.hpp"
 #include "trace_parser.hpp"
 
@@ -26,11 +26,7 @@ public:
     ApiTraceEnumSignature *enumSignature(unsigned id);
     void addEnumSignature(unsigned id, ApiTraceEnumSignature *signature);
 //LLL
-    void setFilterGroups(const Groups& g)
-    {
-        qDebug()<< "TraceLoader::setFilterGroups";
-        m_groups = g;
-    }
+    void setFilter(const ApiTraceFilter* filter) { m_filter = filter; }
 
 
 public slots:
@@ -100,7 +96,7 @@ private:
     FrameBookmarks m_frameBookmarks;
     QList<ApiTraceFrame*> m_createdFrames;
 
-    Groups m_groups;
+    ApiTraceFilter const *m_filter;
 
     QHash<QString, QUrl> m_helpHash;
 

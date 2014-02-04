@@ -241,8 +241,7 @@ bool ApiTrace::hasErrors() const
 //LLL
 void ApiTrace::adjustFilter(ApiTraceFilter* filter)
 {
-    qDebug() << "\n\nApiTrace::adjustFilter";
-    m_loader->setFilterGroups(filter->filterGroups());
+    m_loader->setFilter(filter);
 }
 
 void ApiTrace::loadFrame(ApiTraceFrame *frame)

@@ -25,7 +25,8 @@ public:
     };
     Q_DECLARE_FLAGS(FilterOptions, FilterOption)
 public:
-    ApiTraceFilter(QObject *parent = 0);
+    explicit
+    ApiTraceFilter(ApiTrace*, QObject *parent = 0);
 
     FilterOptions filterOptions() const;
     void setFilterOptions(FilterOptions opts);
@@ -38,13 +39,17 @@ public:
 
     QModelIndex indexForCall(ApiTraceCall *call) const;
 
-//LLL
-    void setApiTrace(ApiTrace*);
-    void setFilterGroups(Groups&);
-    Groups filterGroups() const;
+//--- LLL >>>
+    void setGroupsFilter(QStringList, int);
+    bool usingGroup(QString) const;
+    bool showGroupsOps()     const  {return m_groupsFilter.groupsops();}
+    bool showRenderOps()     const  {return m_groupsFilter.renderops();}
+    int  groupsTypeIndex()   const  {return m_groupsFilter.index();}
+
 signals:
     void filterChanged(ApiTraceFilter*);
     void refreshFrames();
+//<<< LLL ---
    
 protected:
     bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const;
@@ -53,9 +58,8 @@ private:
     QRegExp m_regexp;
     FilterOptions m_filters;
     QRegExp m_customRegexp;
-
-    //LLL add grouplist stuff here etc.
-    Groups m_groups;
+//LLL
+    GroupsFilter m_groupsFilter;
 };
 
 #endif
