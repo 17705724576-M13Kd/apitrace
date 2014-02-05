@@ -11,10 +11,10 @@ ApiTraceFilter::ApiTraceFilter(ApiTrace *model, QObject *parent)
       m_filters(ExtensionsFilter | ResolutionsFilter |
                 ErrorsQueryFilter | ExtraStateFilter)
 {
-    QStringList groupsList;
-    groupsList << "glPushDebugGroup/glPopDebugGroup" 
-               << "glPushGroupMarkerExt/glPopGroupMarkerExt";
-    m_groupsFilter.setGroupsList(groupsList);
+    QStringList groupsList =
+        (QStringList() << "glPushDebugGroup/glPopDebugGroup" 
+                       << "glPushGroupMarkerExt/glPopGroupMarkerExt");
+    m_groupsFilter = GroupsFilter(groupsList);
 
     model->adjustFilter(this);
 }
