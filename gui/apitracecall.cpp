@@ -765,6 +765,13 @@ ApiTraceCall::addChild(ApiTraceCall *call)
 }
 
 
+void
+ApiTraceCall::removeLastChild()
+{
+    m_children.erase(m_children.end()-1);
+}
+
+
 int
 ApiTraceCall::callIndex(ApiTraceCall *call) const
 {

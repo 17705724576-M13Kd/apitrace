@@ -270,6 +270,7 @@ public:
     QVector<ApiTraceCall*> children() const;
     ApiTraceEvent *eventAtRow(int row) const;
     void addChild(ApiTraceCall *call);
+    void removeLastChild();
     void finishedAddingChildren();
 
     bool hasError() const;

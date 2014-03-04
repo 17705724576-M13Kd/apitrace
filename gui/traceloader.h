@@ -10,6 +10,8 @@
 #include <QList>
 #include <QMap>
 
+class ApiTraceFilter;
+
 class TraceLoader : public QObject
 {
     Q_OBJECT
@@ -23,6 +25,8 @@ public:
 
     ApiTraceEnumSignature *enumSignature(unsigned id);
     void addEnumSignature(unsigned id, ApiTraceEnumSignature *signature);
+
+    void setFilterModel(ApiTraceFilter *proxyModel);
 
 public slots:
     void loadTrace(const QString &filename);
@@ -94,6 +98,8 @@ private:
 
     QVector<ApiTraceCallSignature*> m_signatures;
     QVector<ApiTraceEnumSignature*> m_enumSignatures;
+
+    ApiTraceFilter *m_filter;
 };
 
 #endif

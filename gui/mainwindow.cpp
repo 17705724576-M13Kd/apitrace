@@ -766,6 +766,9 @@ void MainWindow::initObjects()
     m_model->setApiTrace(m_trace);
     m_proxyModel = new ApiTraceFilter();
     m_proxyModel->setSourceModel(m_model);
+
+    m_trace->setFilterModel(m_proxyModel);
+
     m_ui.callView->setModel(m_proxyModel);
     m_ui.callView->setItemDelegate(
         new ApiCallDelegate(m_ui.callView));
