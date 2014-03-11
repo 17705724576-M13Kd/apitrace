@@ -224,6 +224,7 @@ public:
     virtual int numChildren() const = 0;
     virtual int callIndex(ApiTraceCall *call) const = 0;
     virtual ApiTraceEvent *eventAtRow(int row) const = 0;
+    virtual void setAlternateText (QString) {}
 
     QVariantMap stateParameters() const;
     ApiTraceState *state() const;
@@ -232,14 +233,22 @@ public:
     {
         return m_state && !m_state->isEmpty();
     }
+    void setExpandedState(bool state)
+    {
+        m_expandedState = state;
+    }
 
 protected:
     int m_type : 4;
     mutable bool m_hasBinaryData;
     mutable int m_binaryDataIndex:8;
     ApiTraceState *m_state;
+    bool m_expandedState;
 
     mutable QStaticText *m_staticText;
+
+    QString m_alternateText;
+    mutable QStaticText *m_alternateStaticText;
 };
 Q_DECLARE_METATYPE(ApiTraceEvent*);
 
@@ -262,6 +271,13 @@ public:
     void setHelpUrl(const QUrl &url);
     ApiTraceFrame *parentFrame()const;
     void setParentFrame(ApiTraceFrame *frame);
+
+    // TODO: change this to setGroupName so
+    //       checking for children makes sense
+    void setAlternateText (QString text) {
+        if (numChildren())
+            m_alternateText = text;
+    }
 
     int callIndex(ApiTraceCall *call) const;
 

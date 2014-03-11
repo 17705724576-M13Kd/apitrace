@@ -418,4 +418,26 @@ void ApiTraceModel::endLoadingFrame(ApiTraceFrame *frame)
     m_loadingFrames.remove(frame);
 }
 
+void ApiTraceModel::expandedSlot(const QModelIndex& index)
+{
+    setExpandedState(index, true);
+}
+
+void ApiTraceModel::collapsedSlot(const QModelIndex& index)
+{
+    setExpandedState(index, false);
+}
+
+void ApiTraceModel::setExpandedState(const QModelIndex& index, bool state)
+{
+    const QAbstractItemModel* model = index.model();
+    QVariant variantData   =  model->data(index, ApiTraceModel::EventRole);
+    ApiTraceEvent *parentItem = variantData.value<ApiTraceEvent*>();
+
+    // Don't care about Frames
+    if (parentItem->type() == ApiTraceEvent::Frame) 
+        return;
+    
+    parentItem->setExpandedState(state);
+}
 #include "apitracemodel.moc"

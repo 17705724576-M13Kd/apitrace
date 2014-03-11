@@ -606,7 +606,9 @@ ApiTraceEvent::ApiTraceEvent()
       m_hasBinaryData(false),
       m_binaryDataIndex(0),
       m_state(0),
-      m_staticText(0)
+      m_expandedState(false),
+      m_staticText(0),
+      m_alternateStaticText(0)
 {
 }
 
@@ -615,7 +617,9 @@ ApiTraceEvent::ApiTraceEvent(Type t)
       m_hasBinaryData(false),
       m_binaryDataIndex(0),
       m_state(0),
-      m_staticText(0)
+      m_expandedState(false),
+      m_staticText(0),
+      m_alternateStaticText(0)
 {
 }
 
@@ -933,55 +937,77 @@ void ApiTraceCall::setBacktrace(QString backtrace)
 
 QStaticText ApiTraceCall::staticText() const
 {
-    if (m_staticText && !m_staticText->text().isEmpty())
-        return *m_staticText;
-
-    QVector<QVariant> argValues = arguments();
-
-    QString richText = QString::fromLatin1(
-        "<span style=\"font-weight:bold\">%1</span>(").arg(
-            m_signature->name());
-    QStringList argNames = m_signature->argNames();
-    for (int i = 0; i < argNames.count(); ++i) {
-        richText += QLatin1String("<span style=\"color:#0000ff\">");
-        QString argText = apiVariantToString(argValues[i]);
-
-        //if arguments are really long (e.g. shader text), cut them
-        // and elide it
-        if (argText.length() > 40) {
-            QString shortened = argText.mid(0, 40);
-            shortened[argText.length() - 5] = '.';
-            shortened[argText.length() - 4] = '.';
-            shortened[argText.length() - 3] = '.';
-            shortened[argText.length() - 2] = argText.at(argText.length() - 2);
-            shortened[argText.length() - 1] = argText.at(argText.length() - 1);
-            richText += shortened;
+    if (m_expandedState || m_alternateText.isEmpty()) {
+        if (m_staticText && !m_staticText->text().isEmpty()) {
+            return *m_staticText;
         } else {
-            richText += argText;
+            QVector<QVariant> argValues = arguments();
+
+            QString richText = QString::fromLatin1(
+            "<span style=\"font-weight:bold\">%1</span>(").arg(
+            m_signature->name());
+            QStringList argNames = m_signature->argNames();
+            for (int i = 0; i < argNames.count(); ++i) {
+                richText += QLatin1String("<span style=\"color:#0000ff\">");
+                QString argText = apiVariantToString(argValues[i]);
+
+                //if arguments are really long (e.g. shader text), cut them
+                // and elide it
+                if (argText.length() > 40) {
+                    QString shortened = argText.mid(0, 40);
+                    shortened[argText.length() - 5] = '.';
+                    shortened[argText.length() - 4] = '.';
+                    shortened[argText.length() - 3] = '.';
+                    shortened[argText.length() - 2] = argText.at(argText.length() - 2);
+                    shortened[argText.length() - 1] = argText.at(argText.length() - 1);
+                    richText += shortened;
+                } else {
+                    richText += argText;
+                }
+                richText += QLatin1String("</span>");
+                if (i < argNames.count() - 1)
+                    richText += QLatin1String(", ");
+            }
+            richText += QLatin1String(")");
+            if (m_returnValue.isValid()) {
+                richText +=
+                    QLatin1Literal(" = ") %
+                    QLatin1Literal("<span style=\"color:#0000ff\">") %
+                    apiVariantToString(m_returnValue) %
+                    QLatin1Literal("</span>");
+            }
+    
+            if (!m_staticText)
+                m_staticText = new QStaticText(richText);
+            else
+                m_staticText->setText(richText);
+            QTextOption opt;
+            opt.setWrapMode(QTextOption::NoWrap);
+            m_staticText->setTextOption(opt);
+            m_staticText->prepare();
+
+            return *m_staticText;
         }
-        richText += QLatin1String("</span>");
-        if (i < argNames.count() - 1)
-            richText += QLatin1String(", ");
-    }
-    richText += QLatin1String(")");
-    if (m_returnValue.isValid()) {
-        richText +=
-            QLatin1Literal(" = ") %
-            QLatin1Literal("<span style=\"color:#0000ff\">") %
-            apiVariantToString(m_returnValue) %
-            QLatin1Literal("</span>");
-    }
+    } else { // use alternate text
+        if (m_alternateStaticText && !m_alternateStaticText->text().isEmpty()) {
+            return *m_alternateStaticText;
+        } else {
+            QString richText = QString::fromLatin1(
+            "<span style=\"font-weight:bold\">%1</span>").arg(
+            m_alternateText);
 
-    if (!m_staticText)
-        m_staticText = new QStaticText(richText);
-    else
-        m_staticText->setText(richText);
-    QTextOption opt;
-    opt.setWrapMode(QTextOption::NoWrap);
-    m_staticText->setTextOption(opt);
-    m_staticText->prepare();
+            if (!m_alternateStaticText)
+                m_alternateStaticText = new QStaticText(richText);
+            else
+                m_alternateStaticText->setText(richText);
+            QTextOption opt;
+            opt.setWrapMode(QTextOption::NoWrap);
+            m_alternateStaticText->setTextOption(opt);
+            m_alternateStaticText->prepare();
 
-    return *m_staticText;
+            return *m_alternateStaticText;
+        }
+    }
 }
 
 QString ApiTraceCall::toHtml() const
@@ -1125,7 +1151,6 @@ QStaticText ApiTraceFrame::staticText() const
                 "(%2 calls)</span>")
             .arg(number)
             .arg(m_loaded ? m_calls.count() : m_callsToLoad);
-
     //mark the frame if it uploads more than a meg a frame
     if (m_binaryDataSize > (1024*1024)) {
         richText =

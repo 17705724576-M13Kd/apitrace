@@ -900,6 +900,11 @@ void MainWindow::initConnections()
     connect(m_ui.callView, SIGNAL(customContextMenuRequested(QPoint)),
             this, SLOT(customContextMenuRequested(QPoint)));
 
+    connect(m_ui.callView, SIGNAL(expanded(const QModelIndex&)),
+            m_model, SLOT(expandedSlot(const QModelIndex&)));
+    connect(m_ui.callView, SIGNAL(collapsed(const QModelIndex&)),
+            m_model, SLOT(collapsedSlot(const QModelIndex&)));
+
     connect(m_ui.surfacesTreeWidget,
             SIGNAL(customContextMenuRequested(const QPoint &)),
             SLOT(showSurfacesMenu(const QPoint &)));
