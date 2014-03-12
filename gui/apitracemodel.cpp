@@ -146,7 +146,8 @@ QModelIndex ApiTraceModel::index(int row, int column,
     if (parentEvent) {
         ApiTraceEvent *event = parentEvent->eventAtRow(row);
         if (event) {
-            Q_ASSERT(event->type() == ApiTraceEvent::Call);
+            Q_ASSERT((event->type() == ApiTraceEvent::Call)
+                  || (event->type() == ApiTraceEvent::Group));
             return createIndex(row, column, event);
         } else {
             return QModelIndex();

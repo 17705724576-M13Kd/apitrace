@@ -209,9 +209,10 @@ class ApiTraceEvent
 {
 public:
     enum Type {
-        None  = 0,
-        Call  = 1 << 0,
-        Frame = 1 << 1
+        None   = 0,
+        Call   = 1 << 0,
+        Group  = 1 << 1,
+        Frame  = 1 << 2
     };
 public:
     ApiTraceEvent();

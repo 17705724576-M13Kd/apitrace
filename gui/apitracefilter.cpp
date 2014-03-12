@@ -22,8 +22,9 @@ bool ApiTraceFilter::filterAcceptsRow(int sourceRow,
     if (!event)
         return false;
 
-    //we don't filter frames
-    if (event->type() == ApiTraceEvent::Frame) {
+    //we don't filter frames or group headers
+    if((event->type() == ApiTraceEvent::Frame) ||
+       (event->type() == ApiTraceEvent::Group)) {
         return true;
     }
 
