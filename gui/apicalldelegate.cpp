@@ -9,6 +9,7 @@
 #include <QPainter>
 #include <QStaticText>
 #include <QStyle>
+#include <QDebug>
 
 ApiCallDelegate::ApiCallDelegate(QWidget *parent)
     : QStyledItemDelegate(parent),
@@ -33,6 +34,24 @@ void ApiCallDelegate::paint(QPainter *painter,
         QSize textSize = text.size().toSize();
         //text.setTextWidth(option.rect.width());
         //QStyledItemDelegate::paint(painter, option, index);
+#ifdef LLL
+if (option.state.testFlag(QStyle::State_Selected)){
+    QLinearGradient gradient(0.5, 0, 0.5, 1);
+    gradient.setColorAt(0, QColor("#36d3ff"));
+    gradient.setColorAt(1, QColor("#048dad"));
+
+    QStyleOptionViewItem newOption(option);
+    newOption.palette.setBrush(QPalette::Normal, QPalette::Highlight, Qt::yellow);
+    //newOption.palette.setBrush(QPalette::Normal, QPalette::Highlight, QBrush(gradient));
+    QStyle *style = QApplication::style();
+    style->drawControl(QStyle::CE_ItemViewItem, &newOption, painter, 0);
+    QStyledItemDelegate::paint(painter, newOption, index);
+    //return;
+} else {
+        QStyle *style = QApplication::style();
+        style->drawControl(QStyle::CE_ItemViewItem, &option, painter, 0);
+       }
+#endif //LLL
         QStyle *style = QApplication::style();
         style->drawControl(QStyle::CE_ItemViewItem, &option, painter, 0);
 

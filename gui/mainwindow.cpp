@@ -773,6 +773,29 @@ void MainWindow::initObjects()
     m_ui.callView->header()->swapSections(0, 1);
     m_ui.callView->setColumnWidth(1, 42);
     m_ui.callView->setContextMenuPolicy(Qt::CustomContextMenu);
+//#ifdef LLL
+    QPalette p = m_ui.callView->palette();
+
+    QLinearGradient gradient(0.5, 0, 0.5, 1);
+    gradient.setCoordinateMode(QGradient::ObjectBoundingMode);
+#ifdef LLL
+    // light blue
+    gradient.setColorAt(0, QColor("#c2c7ff"));
+    //gradient.setColorAt(0, QColor("#d2d7ff"));
+    gradient.setColorAt(1, QColor("#8b99ff"));
+    // Cyan
+    gradient.setColorAt(0, QColor("#36d3ff"));
+    gradient.setColorAt(1, QColor("#048dad"));
+#endif //LLL
+    // Yellow
+    gradient.setColorAt(0, QColor("#ffff00"));
+    gradient.setColorAt(1, QColor("#adad00"));
+
+    p.setBrush(QPalette::Highlight, QBrush(gradient));
+    //p.setColor(QPalette::Highlight, QColor("#c2c7ff"));
+    //p.setColor(QPalette::Highlight, Qt::yellow);
+    m_ui.callView->setPalette(p);
+//#endif //LLL
 
     m_progressBar = new QProgressBar();
     m_progressBar->setRange(0, 100);
