@@ -456,6 +456,10 @@ int ApiTrace::callInFrame(int callIdx) const
     return -1;
 }
 
+void ApiTrace::setFilterModel(ApiTraceFilter *proxyModel) {
+    m_loader->setFilterModel(proxyModel);
+}
+
 void ApiTrace::setCallError(const ApiTraceError &error)
 {
     int frameIdx = callInFrame(error.callIndex);

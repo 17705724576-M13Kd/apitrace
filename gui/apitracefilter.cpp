@@ -28,6 +28,11 @@ bool ApiTraceFilter::filterAcceptsRow(int sourceRow,
     }
 
     ApiTraceCall *call = static_cast<ApiTraceCall*>(event);
+    return filterAcceptsCall(call);
+}
+
+bool ApiTraceFilter::filterAcceptsCall(ApiTraceCall *call) const
+{
     QString function = call->name();
 
     if (!m_regexp.isEmpty() && m_regexp.isValid()) {

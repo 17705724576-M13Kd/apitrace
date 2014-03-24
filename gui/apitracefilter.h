@@ -32,6 +32,8 @@ public:
     QString customFilterRegexp() const;
 
     QModelIndex indexForCall(ApiTraceCall *call) const;
+
+    bool filterAcceptsCall(ApiTraceCall *call) const;
 protected:
     bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const;
 
