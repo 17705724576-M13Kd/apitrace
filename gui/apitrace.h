@@ -9,6 +9,7 @@
 #include <QSet>
 
 class TraceLoader;
+class ApiTraceFilter;
 class SaverThread;
 class QThread;
 
@@ -74,6 +75,8 @@ public:
     bool isSaving() const;
 
     bool hasErrors() const;
+
+    void setFilterModel(ApiTraceFilter *proxyModel);
 
     trace::API api() const;
 

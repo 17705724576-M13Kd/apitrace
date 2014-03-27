@@ -28,6 +28,7 @@ public:
     void stateSetOnEvent(ApiTraceEvent *event);
 
     QModelIndex indexForCall(ApiTraceCall *call) const;
+    void setExpandedState(const QModelIndex& index, bool state);
 
 public:
     /* QAbstractItemModel { */
@@ -59,6 +60,8 @@ private slots:
     void frameChanged(ApiTraceFrame *frame);
     void beginLoadingFrame(ApiTraceFrame *frame, int numAdded);
     void endLoadingFrame(ApiTraceFrame *frame);
+    void expandedSlot(const QModelIndex&);
+    void collapsedSlot(const QModelIndex&);
 
 private:
     ApiTraceEvent *item(const QModelIndex &index) const;
