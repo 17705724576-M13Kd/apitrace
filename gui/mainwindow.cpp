@@ -766,6 +766,9 @@ void MainWindow::initObjects()
     m_model->setApiTrace(m_trace);
     m_proxyModel = new ApiTraceFilter();
     m_proxyModel->setSourceModel(m_model);
+
+    m_trace->setFilterModel(m_proxyModel);
+
     m_ui.callView->setModel(m_proxyModel);
     m_ui.callView->setItemDelegate(
         new ApiCallDelegate(m_ui.callView));
@@ -896,6 +899,11 @@ void MainWindow::initConnections()
             this, SLOT(callItemActivated(const QModelIndex &)));
     connect(m_ui.callView, SIGNAL(customContextMenuRequested(QPoint)),
             this, SLOT(customContextMenuRequested(QPoint)));
+
+    connect(m_ui.callView, SIGNAL(expanded(const QModelIndex&)),
+            m_model, SLOT(expandedSlot(const QModelIndex&)));
+    connect(m_ui.callView, SIGNAL(collapsed(const QModelIndex&)),
+            m_model, SLOT(collapsedSlot(const QModelIndex&)));
 
     connect(m_ui.surfacesTreeWidget,
             SIGNAL(customContextMenuRequested(const QPoint &)),

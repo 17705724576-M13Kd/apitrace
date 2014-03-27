@@ -11,6 +11,8 @@
 #include <QMap>
 #include <QStack>
 
+class ApiTraceFilter;
+
 class TraceLoader : public QObject
 {
     Q_OBJECT
@@ -25,22 +27,30 @@ public:
     ApiTraceEnumSignature *enumSignature(unsigned id);
     void addEnumSignature(unsigned id, ApiTraceEnumSignature *signature);
 
+    void setFilterModel(ApiTraceFilter *proxyModel);
+
 private:
     class FrameContents
     {
     public:
         FrameContents(int numOfCalls=0);
 
-        bool load(TraceLoader *loader, ApiTraceFrame* frame,
-                  QHash<QString, QUrl> helpHash, trace::Parser &parser);
+        bool load(TraceLoader  *loader, ApiTraceFilter* filter,
+                  ApiTraceFrame* frame, QHash<QString, QUrl> helpHash,
+                  trace::Parser &parser);
         void reset();
         int  topLevelCount()      const;
         int  allCallsCount()      const;
         QVector<ApiTraceCall*> topLevelCalls() const;
         QVector<ApiTraceCall*> allCalls()      const;
         quint64 binaryDataSize()  const;
-        bool isEmpty();
+        bool isEmpty() const;
 
+        inline void moveCallToTopLevel(ApiTraceFrame *currentFrame,
+                                       trace::Call   *call,
+                                       ApiTraceCall  *apiCall,
+                                       QHash<QString, QUrl> helpHash,
+                                       TraceLoader   *loader );
     private:
         QStack <ApiTraceCall*> m_groups;
         QVector<ApiTraceCall*> m_topLevelItems;
@@ -119,6 +129,8 @@ private:
 
     QVector<ApiTraceCallSignature*> m_signatures;
     QVector<ApiTraceEnumSignature*> m_enumSignatures;
+
+    ApiTraceFilter *m_filter;
 };
 
 #endif

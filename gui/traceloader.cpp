@@ -1,6 +1,7 @@
 #include "traceloader.h"
 
 #include "apitrace.h"
+#include "apitracefilter.h"
 #include <QDebug>
 #include <QFile>
 
@@ -179,7 +180,7 @@ void TraceLoader::parseTrace()
     currentFrame->number = frameCount;
 
     FrameContents frameCalls;
-    while (frameCalls.load(this, currentFrame, m_helpHash, m_parser)) {
+    while(frameCalls.load(this, m_filter, currentFrame, m_helpHash, m_parser)) {
 
         if (frameCalls.topLevelCount() == frameCalls.allCallsCount()) {
             currentFrame->setCalls(frameCalls.allCalls(),
@@ -387,6 +388,11 @@ bool TraceLoader::callContains(trace::Call *call,
     return result;
 }
 
+void TraceLoader::setFilterModel(ApiTraceFilter *proxyModel)
+{
+    m_filter = proxyModel;
+}
+
 QVector<ApiTraceCall*>
 TraceLoader::fetchFrameContents(ApiTraceFrame *currentFrame)
 {
@@ -406,7 +412,7 @@ TraceLoader::fetchFrameContents(ApiTraceFrame *currentFrame)
             m_parser.setBookmark(frameBookmark.start);
 
             FrameContents frameCalls(numOfCalls);
-            frameCalls.load(this, currentFrame, m_helpHash, m_parser);
+            frameCalls.load(this, m_filter, currentFrame, m_helpHash, m_parser);
             if (frameCalls.topLevelCount() == frameCalls.allCallsCount()) {
                 emit frameContentsLoaded(currentFrame,
                                          frameCalls.allCalls(),
@@ -474,60 +480,81 @@ TraceLoader::FrameContents::FrameContents(int numOfCalls)
 {}
 
 
-void
-TraceLoader::FrameContents::reset()
+void TraceLoader::FrameContents::reset()
 {
     m_groups.clear();
     m_allCalls.clear();
     m_topLevelItems.clear();
     m_binaryDataSize = 0;
+    m_parsedCalls = 0;
 }
 
-int
-TraceLoader::FrameContents::topLevelCount() const
+int TraceLoader::FrameContents::topLevelCount() const
 {
     return m_topLevelItems.count();
 }
 
-int
-TraceLoader::FrameContents::allCallsCount() const
+int TraceLoader::FrameContents::allCallsCount() const
 {
     return m_allCalls.count();
 }
 
-quint64
-TraceLoader::FrameContents::binaryDataSize() const
+quint64 TraceLoader::FrameContents::binaryDataSize() const
 {
     return m_binaryDataSize;
 }
-QVector<ApiTraceCall*>
-TraceLoader::FrameContents::topLevelCalls() const
+
+QVector<ApiTraceCall*> TraceLoader::FrameContents::topLevelCalls() const
 {
     return m_topLevelItems;
 }
 
-QVector<ApiTraceCall*>
-TraceLoader::FrameContents::allCalls() const
+QVector<ApiTraceCall*> TraceLoader::FrameContents::allCalls() const
 {
     return m_allCalls;
 }
 
-bool
-TraceLoader::FrameContents::isEmpty()
+bool TraceLoader::FrameContents::isEmpty() const
 {
     return (m_allCalls.count() == 0);
 }
 
-bool
-TraceLoader::FrameContents::load(TraceLoader   *loader,
-                               ApiTraceFrame *currentFrame, 
-                               QHash<QString, QUrl> helpHash,
-                               trace::Parser &parser)
+void TraceLoader::FrameContents::moveCallToTopLevel(
+                                     ApiTraceFrame *currentFrame,
+                                     trace::Call   *call,
+                                     ApiTraceCall  *apiCall,
+                                     QHash<QString, QUrl> helpHash,
+                                     TraceLoader   *loader )
 {
+    ApiTraceCall *callParent = 0;
+
+    delete apiCall;
+    apiCall = apiCallFromTraceCall(call, helpHash, currentFrame, callParent,
+                                   loader);
+
+    // Replace previous saved apicall with new one
+    m_allCalls[m_parsedCalls-1] = apiCall;
+
+    // Add new one to frame parent
+    m_topLevelItems.append(apiCall);
+}
+
+bool TraceLoader::FrameContents::load(TraceLoader    *loader,
+                                      ApiTraceFilter *filter, 
+                                      ApiTraceFrame  *currentFrame, 
+                                      QHash<QString, QUrl> helpHash,
+                                      trace::Parser  &parser)
+{
+    size_t nPushFlags = 0;
+    bool bFiltered        = false;
+    bool bStartNewGroup   = false;
     bool bEndFrameReached = false;
-    int initNumOfCalls = m_allCalls.count();
+
+    int initNumOfCalls = m_allCalls.size();
     trace::Call  *call;
     ApiTraceCall *apiCall = NULL;
+
+    const QString STATEGROUP("State changes");
 
     while ((call = parser.parse_call())) {
 
@@ -537,23 +564,101 @@ TraceLoader::FrameContents::load(TraceLoader   *loader,
         Q_ASSERT(apiCall);
         if (initNumOfCalls) {
             Q_ASSERT(m_parsedCalls < m_allCalls.size());
-            m_allCalls[m_parsedCalls++] = apiCall;
+            m_allCalls[m_parsedCalls] = apiCall;
         } else {
             m_allCalls.append(apiCall);
         }
+        ++m_parsedCalls;
+
+        // if Call is displayed
+        bFiltered = filter->filterAcceptsCall (apiCall);
+
         if (m_groups.count() == 0) {
+
             m_topLevelItems.append(apiCall);
-        } else {
-            m_groups.top()->addChild(apiCall);
-        }
-        if (call->flags & trace::CALL_FLAG_MARKER_PUSH) {
-            m_groups.push(apiCall);
-        } else if (call->flags & trace::CALL_FLAG_MARKER_POP) {
-            if (m_groups.count()) {
+
+            // Start a new group:
+            if (bFiltered) {
+                // If this is a POP, it's unpaired; leave it dangling
+                if (!(call->flags & trace::CALL_FLAG_MARKER_POP)) {
+                    m_groups.push(apiCall);
+                }
+
+                // If PUSH, next call will be to start a new child group
+                if (call->flags & trace::CALL_FLAG_MARKER_PUSH) {
+                   bStartNewGroup=true;
+                   ++nPushFlags;
+                } else { // this call is the group parent
+                    bStartNewGroup=false;
+                }
+            } /* if (bFiltered) */
+        } else { /* groups.count() > 0 */
+            if (call->flags & trace::CALL_FLAG_RENDER) {
+                m_groups.top()->addChild(apiCall); 
                 m_groups.top()->finishedAddingChildren();
-                m_groups.pop();
+                if (!bStartNewGroup) { // end previous call group if not new
+                    // Use render call name minus "gl" prefix
+                    QString name = (QString(apiCall->name())).remove(0,2);
+                    m_groups.top()->setGroupName(name);
+                    m_groups.pop();
+                    bStartNewGroup = true;
+                }
+            } else if (call->flags & trace::CALL_FLAG_MARKER_POP) {
+                m_groups.top()->finishedAddingChildren();
+                if (!bStartNewGroup) { // end previous call group if not new
+                    m_groups.top()->setGroupName(STATEGROUP);
+                    m_groups.pop();
+                }
+                if (m_groups.count()) {
+                    m_groups.top()->addChild(apiCall);
+                    m_groups.top()->finishedAddingChildren();
+                    // Use glPushDebugGroup "msg" argument as group name
+                    QString name = (m_groups.top()-> arguments())[3].
+                                                         toString();
+                    m_groups.top()->setGroupName(QString("\"" + name
+                                               + QString("\" group")));
+                    m_groups.pop();
+                } else { // This one is unpaired; move to top level
+                    moveCallToTopLevel(currentFrame, call, apiCall, helpHash,
+                                       loader );
+                }
+                if (nPushFlags) {
+                    --nPushFlags;
+                }
+                bStartNewGroup = true;
+            } else if (call->flags & trace::CALL_FLAG_MARKER_PUSH) {
+                // If under an existing PUSH group then make it a child.
+                // Otherwise end the previous call group and start a new
+                // PUSH group
+                if (nPushFlags) {
+                    m_groups.top()->addChild(apiCall);
+                } else { // close previous (non-push) group
+                    m_groups.top()->setGroupName(STATEGROUP);
+                    m_groups.top()->finishedAddingChildren();
+                    m_groups.pop();
+                    if (m_groups.count()) {
+                        m_groups.top()->addChild(apiCall); 
+                    } else { // add to top level
+                        moveCallToTopLevel(currentFrame, call, apiCall,
+                                           helpHash, loader );
+                    }
+                }
+                if (bFiltered) {
+                    m_groups.push (apiCall);
+                    ++nPushFlags;
+                    bStartNewGroup = true;
+                }
+            } else { /* not a PUSH/POP/RENDER call */
+                m_groups.top()->addChild(apiCall);
+                if (bStartNewGroup) {
+                    if (bFiltered) {
+                        m_groups.push (apiCall);
+                        bStartNewGroup = false;
+                    }
+                }
             }
-        }
+        } /* if (groups.count() > 0) */
+
         if (apiCall->hasBinaryData()) {
             QByteArray data =
                 apiCall->arguments()[apiCall->binaryDataIndex()].
@@ -561,13 +666,34 @@ TraceLoader::FrameContents::load(TraceLoader   *loader,
             m_binaryDataSize += data.size();
         }
 
-        delete call;
-
         if (apiCall->flags() & trace::CALL_FLAG_END_FRAME) {
+
             bEndFrameReached = true;
+
+            if (m_groups.count()) {
+                // Move this call from current group to frame
+                m_groups.top()->popLastChild();
+
+                // rename this group
+                m_groups.top()->setGroupName(STATEGROUP);
+
+                // Change last call to use frame as parent
+                moveCallToTopLevel(currentFrame, call, apiCall, helpHash,
+                                   loader );
+            }
+            delete call;
             break;
         }
+        delete call;
+    } /* end while (call) */
+
+    // Close up remaining group
+    if (m_groups.count()) {
+        m_groups.top()->setGroupName(STATEGROUP);
+        m_groups.top()->finishedAddingChildren();
+        m_groups.pop();
     }
+
     if (initNumOfCalls) {
         // There can be fewer parsed calls when call in different
         // threads cross the frame boundary
