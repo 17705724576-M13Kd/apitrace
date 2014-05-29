@@ -86,7 +86,13 @@ extern int verbosity;
 /**
  * Debugging checks.
  */
-extern bool debug;
+extern unsigned debug;
+
+/**
+ * Always force windowed, as there is no guarantee that the original display
+ * mode is available.
+ */
+static const bool forceWindowed = true;
 
 /**
  * Add profiling data to the dump when retracing.
