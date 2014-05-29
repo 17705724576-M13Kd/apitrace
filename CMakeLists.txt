@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 2.8.8)
 
 
 # Use clang on MacOSX. gcc doesn't support __thread key, and Apple has
@@ -65,15 +65,26 @@ endif ()
 find_host_package (PythonInterp REQUIRED)
 find_package (Threads)
 
+
 if (ENABLE_GUI)
     if (NOT (ENABLE_GUI STREQUAL "AUTO"))
         set (REQUIRE_GUI REQUIRED)
     endif ()
-    find_package (Qt4 4.7 COMPONENTS QtCore QtGui QtWebKit ${REQUIRE_GUI})
+    if (POLICY CMP0020)
+        cmake_policy (SET CMP0020 NEW)
+    endif()
+    find_package (Qt5Widgets ${REQUIRE_GUI})
+    find_package (Qt5WebKitWidgets ${REQUIRE_GUI})
 endif ()
 
 if (WIN32)
     find_package (DirectX)
+    foreach (api in D3D D3D8 D3D9 D3D10 D3D10_1 D3D11 D3D11_1 D2D1)
+        if (EXISTS "${DirectX_${api}_INCLUDE_DIR}")
+            find_package_message (${api} "Found ${api}" "${DirectX_${api}_INCLUDE_DIR}")
+        endif ()
+    endforeach ()
+
     set (ENABLE_EGL false)
 elseif (APPLE)
     set (ENABLE_EGL false)
@@ -113,8 +124,11 @@ else (WIN32)
 endif ()
 
 if (MSVC)
-    # C99 includes for MSVC
-    include_directories (${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/msinttypes)
+    # Use bundled stdint.h for older MSVC versions
+    check_include_file_cxx (stdint.h HAVE_STDINT_H)
+    if (NOT HAVE_STDINT_H)
+        include_directories (${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/msinttypes)
+    endif ()
 
     # No RTTI required
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR-")
@@ -273,7 +287,6 @@ if (MSVC)
 endif ()
 
 if (WIN32)
-    add_subdirectory (thirdparty/less)
     add_subdirectory (thirdparty/directxtex)
 endif ()
 
@@ -287,19 +300,6 @@ endif ()
 add_subdirectory (thirdparty/md5)
 set (MD5_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/md5)
 set (MD5_LIBRARIES md5_bundled)
-
-# Always use bundled QJSon.
-# - The packaged versions QJson are very old, and do not support NaN/Infinity.
-# - To make it easier to build the GUI on Windows and MacOSX, as there are no
-# binaries at all.
-if (QT4_FOUND)
-    add_definitions (-DQJSON_EXPORT=)
-    add_subdirectory (thirdparty/qjson)
-    set (QJSON_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty)
-    set (QJSON_LIBRARY_DIRS)
-    set (QJSON_LIBRARIES qjson_bundled)
-    set (QJSON_FOUND TRUE)
-endif ()
 
 # We use bundled headers for all Khronos APIs, to guarantee support for both
 # OpenGL and OpenGL ES at build time, because the OpenGL and OpenGL ES 1 APIs
@@ -411,8 +411,8 @@ endif ()
 ##############################################################################
 # GUI
 
-if (ENABLE_GUI AND QT4_FOUND AND QJSON_FOUND)
-    add_subdirectory(gui)
+if (ENABLE_GUI AND Qt5Widgets_FOUND AND Qt5WebKitWidgets_FOUND)
+  add_subdirectory(gui)
 endif ()
 
 
@@ -439,7 +439,7 @@ if (MSVC)
     )
 endif ()
 
-set (CPACK_PACKAGE_VERSION_MAJOR "4")
+set (CPACK_PACKAGE_VERSION_MAJOR "5")
 set (CPACK_PACKAGE_VERSION_MINOR "0")
 
 # Use current date in YYYYMMDD format as patch number 

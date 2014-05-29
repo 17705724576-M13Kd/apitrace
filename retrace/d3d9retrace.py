@@ -43,17 +43,23 @@ class D3DRetracer(Retracer):
 
     def invokeFunction(self, function):
         if function.name in ('Direct3DCreate9', 'Direct3DCreate9Ex'):
-            print 'if (retrace::debug && !g_szD3D9DllName) {'
-            print '    /* '
-            print '     * XXX: D3D9D only works for simple things, it often introduces errors'
+            print 'if (retrace::debug >= 2 && !g_szD3D9DllName && LoadLibraryA("d3d9d.dll")) {'
+            print '    /*'
+            print '     * D3D9D only works for simple applications, it will often report bogus errors'
             print '     * on complex traces, or traces which use unofficial D3D9 features.'
             print '     */'
-            print '    if (0) {'
-            print '        g_szD3D9DllName = "d3d9d.dll";'
-            print '    }'
+            print '    g_szD3D9DllName = "d3d9d.dll";'
+            print '    SDKVersion |= 0x80000000;'
+            print '} else {'
+            print '    SDKVersion &= ~0x80000000;'
             print '}'
 
         Retracer.invokeFunction(self, function)
+
+    createDeviceMethodNames = [
+        'CreateDevice',
+        'CreateDeviceEx',
+    ]
 
     def invokeInterfaceMethod(self, interface, method):
         # keep track of the last used device for state dumping
@@ -78,8 +84,15 @@ class D3DRetracer(Retracer):
             print r'    pPresentationParameters->hDeviceWindow = hWnd;'
             if 'hFocusWindow' in method.argNames():
                 print r'    hFocusWindow = hWnd;'
+
+            # force windowed mode
+            print r'    if (retrace::forceWindowed) {'
+            print r'        pPresentationParameters->Windowed = TRUE;'
+            print r'        pPresentationParameters->FullScreen_RefreshRateInHz = 0;'
+            print r'    }'
         
-        if method.name in ('CreateDevice', 'CreateDeviceEx'):
+        if method.name in self.createDeviceMethodNames:
+            # override the device type
             print r'    switch (retrace::driver) {'
             print r'    case retrace::DRIVER_HARDWARE:'
             print r'        DeviceType = D3DDEVTYPE_HAL;'
@@ -105,6 +118,12 @@ class D3DRetracer(Retracer):
             print r'    }'
 
         if method.name in ('Reset', 'ResetEx'):
+            # force windowed mode
+            print r'    if (retrace::forceWindowed) {'
+            print r'        pPresentationParameters->Windowed = TRUE;'
+            print r'        pPresentationParameters->FullScreen_RefreshRateInHz = 0;'
+            print r'    }'
+            # resize window
             print r'    if (pPresentationParameters->Windowed) {'
             print r'        d3dretrace::resizeWindow(pPresentationParameters->hDeviceWindow, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);'
             print r'    }'
@@ -121,6 +140,11 @@ class D3DRetracer(Retracer):
             print r'    }'
 
         Retracer.invokeInterfaceMethod(self, interface, method)
+
+        if method.name in self.createDeviceMethodNames:
+            print r'    if (FAILED(_result)) {'
+            print r'        exit(1);'
+            print r'    }'
 
         # process events after presents
         if method.name == 'Present':
